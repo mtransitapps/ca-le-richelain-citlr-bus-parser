@@ -91,7 +91,12 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 		return routeShortName;
 	}
 
-	private static final String ROUTE_COLOR = "009BC9";
+	private static final String AGENCY_COLOR = "009BC9";
+
+	@Override
+	public String getAgencyColor() {
+		return AGENCY_COLOR;
+	}
 
 	@Override
 	public String getRouteColor(GRoute gRoute) {
@@ -124,7 +129,7 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 		if ("T-35".equals(gRoute.route_short_name)) return "D0504D";
 		if ("T-36".equals(gRoute.route_short_name)) return "F79646";
 		if ("T-51".equals(gRoute.route_short_name)) return "60497A";
-		return ROUTE_COLOR;
+		return super.getAgencyColor();
 	}
 
 	@Override
