@@ -35,7 +35,7 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 
 	@Override
 	public void start(String[] args) {
-		System.out.printf("\nGenerating CITLR bus data...\n");
+		System.out.printf("\nGenerating CITLR bus data...");
 		long start = System.currentTimeMillis();
 		this.serviceIds = extractUsefulServiceIds(args, this);
 		super.start(args);
