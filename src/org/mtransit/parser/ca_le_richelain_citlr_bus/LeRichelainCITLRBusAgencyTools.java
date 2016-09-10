@@ -143,6 +143,7 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 	private static final String RSN_T_11 = "T-11";
 	private static final String RSN_T_12 = "T-12";
 	private static final String RSN_T_27 = "T-27";
+	private static final String RSN_T_25 = "T-25";
 	private static final String RSN_T_28 = "T-28";
 	private static final String RSN_T_35 = "T-35";
 	private static final String RSN_T_36 = "T-36";
@@ -179,7 +180,7 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 		if (RSN_T_35.equals(gRoute.getRouteShortName())) return COLOR_D0504D;
 		if (RSN_T_36.equals(gRoute.getRouteShortName())) return COLOR_F79646;
 		if (RSN_T_51.equals(gRoute.getRouteShortName())) return COLOR_60497A;
-		System.out.println("Unexpected route color " + gRoute);
+		System.out.printf("\nUnexpected route color for %s!\n", gRoute);
 		System.exit(-1);
 		return null;
 	}
