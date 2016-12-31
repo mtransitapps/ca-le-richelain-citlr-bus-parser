@@ -147,6 +147,7 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 	private static final String RSN_T_28 = "T-28";
 	private static final String RSN_T_35 = "T-35";
 	private static final String RSN_T_36 = "T-36";
+	private static final String RSN_T_37 = "T-37";
 	private static final String RSN_T_51 = "T-51";
 
 	@Override
@@ -175,10 +176,12 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 		if (RSN_343.equals(gRoute.getRouteShortName())) return COLOR_FF6569;
 		if (RSN_T_11.equals(gRoute.getRouteShortName())) return COLOR_FF5050;
 		if (RSN_T_12.equals(gRoute.getRouteShortName())) return COLOR_8064A2;
+		if (RSN_T_25.equals(gRoute.getRouteShortName())) return "1F497C";
 		if (RSN_T_27.equals(gRoute.getRouteShortName())) return COLOR_808080;
 		if (RSN_T_28.equals(gRoute.getRouteShortName())) return COLOR_366092;
 		if (RSN_T_35.equals(gRoute.getRouteShortName())) return COLOR_D0504D;
 		if (RSN_T_36.equals(gRoute.getRouteShortName())) return COLOR_F79646;
+		if (RSN_T_37.equals(gRoute.getRouteShortName())) return "FF9A00";
 		if (RSN_T_51.equals(gRoute.getRouteShortName())) return COLOR_60497A;
 		System.out.printf("\nUnexpected route color for %s!\n", gRoute);
 		System.exit(-1);
@@ -248,22 +251,26 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 		}
 		// generating integer stop ID
 		Matcher matcher = DIGITS.matcher(gStop.getStopId());
-		matcher.find();
-		int digits = Integer.parseInt(matcher.group());
-		int stopId;
-		if (gStop.getStopId().startsWith("CAN")) {
-			stopId = 100000;
-		} else {
-			System.out.println("Stop doesn't have an ID (start with)! " + gStop);
-			System.exit(-1);
-			stopId = -1;
+		if (matcher.find()) {
+			int digits = Integer.parseInt(matcher.group());
+			int stopId;
+			if (gStop.getStopId().startsWith("CAN")) {
+				stopId = 100000;
+			} else {
+				System.out.printf("\nStop doesn't have an ID (start with)! 5s\n", gStop);
+				System.exit(-1);
+				stopId = -1;
+			}
+			if (gStop.getStopId().endsWith("D")) {
+				stopId += 4000;
+			} else {
+				System.out.printf("\nStop doesn't have an ID (end with)! %s\n", gStop);
+				System.exit(-1);
+			}
+			return stopId + digits;
 		}
-		if (gStop.getStopId().endsWith("D")) {
-			stopId += 4000;
-		} else {
-			System.out.println("Stop doesn't have an ID (end with)! " + gStop);
-			System.exit(-1);
-		}
-		return stopId + digits;
+		System.out.printf("\nUnexpected stop ID for %s!\n", gStop);
+		System.exit(-1);
+		return -1;
 	}
 }
