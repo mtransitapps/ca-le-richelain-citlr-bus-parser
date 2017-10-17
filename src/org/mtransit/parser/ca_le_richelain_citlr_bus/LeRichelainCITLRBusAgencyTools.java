@@ -142,6 +142,7 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 	private static final String RSN_343 = "343";
 	private static final String RSN_T_11 = "T-11";
 	private static final String RSN_T_12 = "T-12";
+	private static final String RSN_T_22 = "T22";
 	private static final String RSN_T_27 = "T-27";
 	private static final String RSN_T_25 = "T-25";
 	private static final String RSN_T_28 = "T-28";
@@ -176,6 +177,7 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 		if (RSN_343.equals(gRoute.getRouteShortName())) return COLOR_FF6569;
 		if (RSN_T_11.equals(gRoute.getRouteShortName())) return COLOR_FF5050;
 		if (RSN_T_12.equals(gRoute.getRouteShortName())) return COLOR_8064A2;
+		if (RSN_T_22.equals(gRoute.getRouteShortName())) return "305496";
 		if (RSN_T_25.equals(gRoute.getRouteShortName())) return "1F497C";
 		if (RSN_T_27.equals(gRoute.getRouteShortName())) return COLOR_808080;
 		if (RSN_T_28.equals(gRoute.getRouteShortName())) return COLOR_366092;
@@ -249,7 +251,6 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 		if (stopCode != null && stopCode.length() > 0) {
 			return Integer.valueOf(stopCode); // using stop code as stop ID
 		}
-		// generating integer stop ID
 		Matcher matcher = DIGITS.matcher(gStop.getStopId());
 		if (matcher.find()) {
 			int digits = Integer.parseInt(matcher.group());
