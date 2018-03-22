@@ -142,7 +142,7 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 	private static final String RSN_343 = "343";
 	private static final String RSN_T_11 = "T-11";
 	private static final String RSN_T_12 = "T-12";
-	private static final String RSN_T_22 = "T22";
+	private static final String RSN_T_22 = "T-22";
 	private static final String RSN_T_27 = "T-27";
 	private static final String RSN_T_25 = "T-25";
 	private static final String RSN_T_28 = "T-28";
