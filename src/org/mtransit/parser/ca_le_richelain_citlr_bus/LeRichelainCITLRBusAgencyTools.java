@@ -88,6 +88,13 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 		return routeShortName;
 	}
 
+	@Override
+	public long getRouteId(GRoute gRoute) {
+		String routeId = gRoute.getRouteId();
+		routeId = CleanUtils.cleanMergedID(routeId);
+		return Long.parseLong(routeId);
+	}
+
 	private static final String AGENCY_COLOR = "009BC9";
 
 	@Override
