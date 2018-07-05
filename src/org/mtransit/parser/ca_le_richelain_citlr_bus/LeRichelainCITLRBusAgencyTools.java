@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang3.StringUtils;
 import org.mtransit.parser.DefaultAgencyTools;
 import org.mtransit.parser.Utils;
 import org.mtransit.parser.gtfs.data.GCalendar;
@@ -95,7 +96,7 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 		return Long.parseLong(routeId);
 	}
 
-	private static final String AGENCY_COLOR = "009BC9";
+	private static final String AGENCY_COLOR = "1F1F1F"; // DARK GRAY (from GTFS)
 
 	@Override
 	public String getAgencyColor() {
@@ -160,41 +161,44 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 
 	@Override
 	public String getRouteColor(GRoute gRoute) {
-		if (RSN_11.equals(gRoute.getRouteShortName())) return COLOR_FF7C80;
-		if (RSN_21.equals(gRoute.getRouteShortName())) return COLOR_B1A0C7;
-		if (RSN_22.equals(gRoute.getRouteShortName())) return COLOR_84582D;
-		if (RSN_23.equals(gRoute.getRouteShortName())) return COLOR_31869B;
-		if (RSN_28.equals(gRoute.getRouteShortName())) return COLOR_53A9FF;
-		if (RSN_29.equals(gRoute.getRouteShortName())) return COLOR_99CCFF;
-		if (RSN_31.equals(gRoute.getRouteShortName())) return COLOR_FFC000;
-		if (RSN_32.equals(gRoute.getRouteShortName())) return COLOR_C0504D;
-		if (RSN_33.equals(gRoute.getRouteShortName())) return COLOR_92D050;
-		if (RSN_38.equals(gRoute.getRouteShortName())) return COLOR_FF9933;
-		if (RSN_39.equals(gRoute.getRouteShortName())) return COLOR_FF9933;
-		if (RSN_121.equals(gRoute.getRouteShortName())) return COLOR_8064A2;
-		if (RSN_122.equals(gRoute.getRouteShortName())) return COLOR_C4BD97;
-		if (RSN_123.equals(gRoute.getRouteShortName())) return COLOR_4BACC6;
-		if (RSN_124.equals(gRoute.getRouteShortName())) return COLOR_C4BD97;
-		if (RSN_132.equals(gRoute.getRouteShortName())) return COLOR_963634;
-		if (RSN_133.equals(gRoute.getRouteShortName())) return COLOR_7EC234;
-		if (RSN_321.equals(gRoute.getRouteShortName())) return COLOR_4BACC6;
-		if (RSN_323.equals(gRoute.getRouteShortName())) return COLOR_8064A2;
-		if (RSN_340.equals(gRoute.getRouteShortName())) return COLOR_FF7C80;
-		if (RSN_341.equals(gRoute.getRouteShortName())) return COLOR_FF6569;
-		if (RSN_343.equals(gRoute.getRouteShortName())) return COLOR_FF6569;
-		if (RSN_T_11.equals(gRoute.getRouteShortName())) return COLOR_FF5050;
-		if (RSN_T_12.equals(gRoute.getRouteShortName())) return COLOR_8064A2;
-		if (RSN_T_22.equals(gRoute.getRouteShortName())) return "305496";
-		if (RSN_T_25.equals(gRoute.getRouteShortName())) return "1F497C";
-		if (RSN_T_27.equals(gRoute.getRouteShortName())) return COLOR_808080;
-		if (RSN_T_28.equals(gRoute.getRouteShortName())) return COLOR_366092;
-		if (RSN_T_35.equals(gRoute.getRouteShortName())) return COLOR_D0504D;
-		if (RSN_T_36.equals(gRoute.getRouteShortName())) return COLOR_F79646;
-		if (RSN_T_37.equals(gRoute.getRouteShortName())) return "FF9A00";
-		if (RSN_T_51.equals(gRoute.getRouteShortName())) return COLOR_60497A;
-		System.out.printf("\nUnexpected route color for %s!\n", gRoute);
-		System.exit(-1);
-		return null;
+		if (StringUtils.isEmpty(gRoute.getRouteColor())) {
+			if (RSN_11.equals(gRoute.getRouteShortName())) return COLOR_FF7C80;
+			if (RSN_21.equals(gRoute.getRouteShortName())) return COLOR_B1A0C7;
+			if (RSN_22.equals(gRoute.getRouteShortName())) return COLOR_84582D;
+			if (RSN_23.equals(gRoute.getRouteShortName())) return COLOR_31869B;
+			if (RSN_28.equals(gRoute.getRouteShortName())) return COLOR_53A9FF;
+			if (RSN_29.equals(gRoute.getRouteShortName())) return COLOR_99CCFF;
+			if (RSN_31.equals(gRoute.getRouteShortName())) return COLOR_FFC000;
+			if (RSN_32.equals(gRoute.getRouteShortName())) return COLOR_C0504D;
+			if (RSN_33.equals(gRoute.getRouteShortName())) return COLOR_92D050;
+			if (RSN_38.equals(gRoute.getRouteShortName())) return COLOR_FF9933;
+			if (RSN_39.equals(gRoute.getRouteShortName())) return COLOR_FF9933;
+			if (RSN_121.equals(gRoute.getRouteShortName())) return COLOR_8064A2;
+			if (RSN_122.equals(gRoute.getRouteShortName())) return COLOR_C4BD97;
+			if (RSN_123.equals(gRoute.getRouteShortName())) return COLOR_4BACC6;
+			if (RSN_124.equals(gRoute.getRouteShortName())) return COLOR_C4BD97;
+			if (RSN_132.equals(gRoute.getRouteShortName())) return COLOR_963634;
+			if (RSN_133.equals(gRoute.getRouteShortName())) return COLOR_7EC234;
+			if (RSN_321.equals(gRoute.getRouteShortName())) return COLOR_4BACC6;
+			if (RSN_323.equals(gRoute.getRouteShortName())) return COLOR_8064A2;
+			if (RSN_340.equals(gRoute.getRouteShortName())) return COLOR_FF7C80;
+			if (RSN_341.equals(gRoute.getRouteShortName())) return COLOR_FF6569;
+			if (RSN_343.equals(gRoute.getRouteShortName())) return COLOR_FF6569;
+			if (RSN_T_11.equals(gRoute.getRouteShortName())) return COLOR_FF5050;
+			if (RSN_T_12.equals(gRoute.getRouteShortName())) return COLOR_8064A2;
+			if (RSN_T_22.equals(gRoute.getRouteShortName())) return "305496";
+			if (RSN_T_25.equals(gRoute.getRouteShortName())) return "1F497C";
+			if (RSN_T_27.equals(gRoute.getRouteShortName())) return COLOR_808080;
+			if (RSN_T_28.equals(gRoute.getRouteShortName())) return COLOR_366092;
+			if (RSN_T_35.equals(gRoute.getRouteShortName())) return COLOR_D0504D;
+			if (RSN_T_36.equals(gRoute.getRouteShortName())) return COLOR_F79646;
+			if (RSN_T_37.equals(gRoute.getRouteShortName())) return "FF9A00";
+			if (RSN_T_51.equals(gRoute.getRouteShortName())) return COLOR_60497A;
+			System.out.printf("\nUnexpected route color for %s!\n", gRoute);
+			System.exit(-1);
+			return null;
+		}
+		return super.getRouteColor(gRoute);
 	}
 
 	@Override
