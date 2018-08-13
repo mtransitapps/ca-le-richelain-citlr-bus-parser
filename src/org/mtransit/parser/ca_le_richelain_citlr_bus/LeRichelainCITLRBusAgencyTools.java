@@ -94,11 +94,25 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 		return routeShortName;
 	}
 
+	private static final String T = "T";
+
+	private static final long RID_STARTS_WITH_T = 20_000L;
+
 	@Override
 	public long getRouteId(GRoute gRoute) {
-		String routeId = gRoute.getRouteId();
-		routeId = CleanUtils.cleanMergedID(routeId);
-		return Long.parseLong(routeId);
+		if (!Utils.isDigitsOnly(gRoute.getRouteShortName())) {
+			Matcher matcher = DIGITS.matcher(gRoute.getRouteShortName());
+			if (matcher.find()) {
+				int digits = Integer.parseInt(matcher.group());
+				if (gRoute.getRouteShortName().startsWith(T)) {
+					return RID_STARTS_WITH_T + digits;
+				}
+			}
+			System.out.printf("\nUnexpected route ID for %s!\n", gRoute);
+			System.exit(-1);
+			return -1L;
+		}
+		return Long.parseLong(gRoute.getRouteShortName());
 	}
 
 	private static final String AGENCY_COLOR = "1F1F1F"; // DARK GRAY (from GTFS)
@@ -225,6 +239,7 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 		tripHeadsign = DIRECTION.matcher(tripHeadsign).replaceAll(DIRECTION_REPLACEMENT);
 		tripHeadsign = SECTEUR.matcher(tripHeadsign).replaceAll(SECTEUR_REPLACEMENT);
 		tripHeadsign = SERVICE.matcher(tripHeadsign).replaceAll(SERVICE_REPLACEMENT);
+		tripHeadsign = CleanUtils.cleanStreetTypesFRCA(tripHeadsign);
 		return CleanUtils.cleanLabelFR(tripHeadsign);
 	}
 
