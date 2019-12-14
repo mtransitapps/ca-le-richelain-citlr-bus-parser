@@ -264,6 +264,19 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 		if (ALL_ROUTE_TRIPS2.containsKey(mRoute.getId())) {
 			return; // split
 		}
+		if (mRoute.getId() == 32L) {
+			if (gTrip.getTripHeadsign().contains("AM")) {
+				mTrip.setHeadsignString("AM", 0);
+				return;
+			}
+			if (gTrip.getTripHeadsign().contains("PM")) {
+				mTrip.setHeadsignString("PM", 1);
+				return;
+			}
+			System.out.printf("\n%d: Unexpected trip '%s'!\n", mRoute.getId(), gTrip);
+			System.exit(-1);
+			return;
+		}
 		mTrip.setHeadsignString(cleanTripHeadsign(gTrip.getTripHeadsign()), gTrip.getDirectionId());
 	}
 
@@ -291,7 +304,15 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 	@Override
 	public boolean mergeHeadsign(MTrip mTrip, MTrip mTripToMerge) {
 		List<String> headsignsValues = Arrays.asList(mTrip.getHeadsignValue(), mTripToMerge.getHeadsignValue());
-		if (mTrip.getRouteId() == 340L) {
+		if (mTrip.getRouteId() == RID_STARTS_WITH_T + 51L) { // T51
+			if (Arrays.asList( //
+					"Candiac", // <>
+					"Brossard" //
+			).containsAll(headsignsValues)) {
+				mTrip.setHeadsignString("Brossard", mTrip.getHeadsignId());
+				return true;
+			}
+		} else if (mTrip.getRouteId() == 340L) {
 			if (Arrays.asList( //
 					"Terminus Longueuil", // <>
 					"Prairie", //
