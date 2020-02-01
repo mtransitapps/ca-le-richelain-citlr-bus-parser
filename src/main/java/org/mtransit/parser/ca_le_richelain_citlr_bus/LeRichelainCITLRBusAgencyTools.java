@@ -11,6 +11,7 @@ import java.util.regex.Pattern;
 import org.apache.commons.lang3.StringUtils;
 import org.mtransit.parser.CleanUtils;
 import org.mtransit.parser.DefaultAgencyTools;
+import org.mtransit.parser.MTLog;
 import org.mtransit.parser.Pair;
 import org.mtransit.parser.SplitUtils;
 import org.mtransit.parser.Utils;
@@ -47,7 +48,7 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 	public void start(String[] args) {
 		System.out.printf("\nGenerating CITLR bus data...");
 		long start = System.currentTimeMillis();
-		this.serviceIds = extractUsefulServiceIds(args, this);
+		this.serviceIds = extractUsefulServiceIds(args, this, true);
 		super.start(args);
 		System.out.printf("\nGenerating CITLR bus data... DONE in %s.\n", Utils.getPrettyDuration(System.currentTimeMillis() - start));
 	}
@@ -264,6 +265,20 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 		if (ALL_ROUTE_TRIPS2.containsKey(mRoute.getId())) {
 			return; // split
 		}
+		if (mRoute.getId() == 25L) { // fix same direction ID for different direction
+			if (gTrip.getDirectionId() == 0) {
+				if (gTrip.getTripHeadsign().equals("Vers Symbiocité")) { // PM
+					mTrip.setHeadsignString(cleanTripHeadsign(gTrip.getTripHeadsign()), 0);
+					return;
+				}
+				if (gTrip.getTripHeadsign().equals("Vers Stationnement incitatif La Prairie")) { // AM
+					mTrip.setHeadsignString(cleanTripHeadsign(gTrip.getTripHeadsign()), 1);
+					return;
+				}
+			}
+			MTLog.logFatal("%d: Unexpected trip '%s'!", mRoute.getId(), gTrip);
+			return;
+		}
 		if (mRoute.getId() == 32L) {
 			if (gTrip.getTripHeadsign().contains("AM")) {
 				mTrip.setHeadsignString("AM", 0);
@@ -273,28 +288,30 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 				mTrip.setHeadsignString("PM", 1);
 				return;
 			}
-			System.out.printf("\n%d: Unexpected trip '%s'!\n", mRoute.getId(), gTrip);
-			System.exit(-1);
+			MTLog.logFatal("%d: Unexpected trip '%s'!", mRoute.getId(), gTrip);
 			return;
 		}
 		mTrip.setHeadsignString(cleanTripHeadsign(gTrip.getTripHeadsign()), gTrip.getDirectionId());
 	}
 
 	private static final Pattern DIRECTION = Pattern.compile("(direction )", Pattern.CASE_INSENSITIVE);
-	private static final String DIRECTION_REPLACEMENT = "";
 
 	private static final Pattern SECTEUR = Pattern.compile("(secteur[s]? )", Pattern.CASE_INSENSITIVE);
-	private static final String SECTEUR_REPLACEMENT = "";
 
 	private static final Pattern SERVICE = Pattern.compile("(service) ([a|p]m)", Pattern.CASE_INSENSITIVE);
 	private static final String SERVICE_REPLACEMENT = "$2";
+
+	private static final Pattern STATIONNEMENT_INCITATIF_ = CleanUtils.cleanWords("stationnement incitatif");
+	private static final String STATIONNEMENT_INCITATIF_REPLACEMENT = CleanUtils.cleanWordsReplacement("Stat Incitatif");
 
 	private static final Pattern FROM_DASH_TO_ = Pattern.compile("[^\\-]+ - ", Pattern.CASE_INSENSITIVE);
 
 	@Override
 	public String cleanTripHeadsign(String tripHeadsign) {
-		tripHeadsign = DIRECTION.matcher(tripHeadsign).replaceAll(DIRECTION_REPLACEMENT);
-		tripHeadsign = SECTEUR.matcher(tripHeadsign).replaceAll(SECTEUR_REPLACEMENT);
+		tripHeadsign = CleanUtils.keepToFR(tripHeadsign);
+		tripHeadsign = DIRECTION.matcher(tripHeadsign).replaceAll(StringUtils.EMPTY);
+		tripHeadsign = STATIONNEMENT_INCITATIF_.matcher(tripHeadsign).replaceAll(STATIONNEMENT_INCITATIF_REPLACEMENT);
+		tripHeadsign = SECTEUR.matcher(tripHeadsign).replaceAll(StringUtils.EMPTY);
 		tripHeadsign = SERVICE.matcher(tripHeadsign).replaceAll(SERVICE_REPLACEMENT);
 		tripHeadsign = FROM_DASH_TO_.matcher(tripHeadsign).replaceAll(StringUtils.EMPTY);
 		tripHeadsign = CleanUtils.cleanStreetTypesFRCA(tripHeadsign);
@@ -345,6 +362,7 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 
 	@Override
 	public String cleanStopName(String gStopName) {
+		gStopName = STATIONNEMENT_INCITATIF_.matcher(gStopName).replaceAll(STATIONNEMENT_INCITATIF_REPLACEMENT);
 		gStopName = AVENUE.matcher(gStopName).replaceAll(AVENUE_REPLACEMENT);
 		gStopName = Utils.replaceAll(gStopName, START_WITH_FACES, CleanUtils.SPACE);
 		gStopName = Utils.replaceAll(gStopName, SPACE_FACES, CleanUtils.SPACE);
