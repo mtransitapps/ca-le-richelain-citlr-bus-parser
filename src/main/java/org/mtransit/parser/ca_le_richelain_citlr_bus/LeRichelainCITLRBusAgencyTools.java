@@ -46,11 +46,11 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 
 	@Override
 	public void start(String[] args) {
-		System.out.printf("\nGenerating CITLR bus data...");
+		MTLog.log("Generating CITLR bus data...");
 		long start = System.currentTimeMillis();
 		this.serviceIds = extractUsefulServiceIds(args, this, true);
 		super.start(args);
-		System.out.printf("\nGenerating CITLR bus data... DONE in %s.\n", Utils.getPrettyDuration(System.currentTimeMillis() - start));
+		MTLog.log("Generating CITLR bus data... DONE in %s.", Utils.getPrettyDuration(System.currentTimeMillis() - start));
 	}
 
 	@Override
@@ -118,9 +118,7 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 					return RID_STARTS_WITH_T + digits;
 				}
 			}
-			System.out.printf("\nUnexpected route ID for %s!\n", gRoute);
-			System.exit(-1);
-			return -1L;
+			throw new MTLog.Fatal("Unexpected route ID for %s!", gRoute);
 		}
 		return Long.parseLong(gRoute.getRouteShortName());
 	}
@@ -223,16 +221,14 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 			if (RSN_T_36.equals(gRoute.getRouteShortName())) return COLOR_F79646;
 			if (RSN_T_37.equals(gRoute.getRouteShortName())) return "FF9A00";
 			if (RSN_T_51.equals(gRoute.getRouteShortName())) return COLOR_60497A;
-			System.out.printf("\nUnexpected route color for %s!\n", gRoute);
-			System.exit(-1);
-			return null;
+			throw new MTLog.Fatal("Unexpected route color for %s!", gRoute);
 		}
 		return super.getRouteColor(gRoute);
 	}
 
-	private static HashMap<Long, RouteTripSpec> ALL_ROUTE_TRIPS2;
+	private static final HashMap<Long, RouteTripSpec> ALL_ROUTE_TRIPS2;
 	static {
-		HashMap<Long, RouteTripSpec> map2 = new HashMap<Long, RouteTripSpec>();
+		HashMap<Long, RouteTripSpec> map2 = new HashMap<>();
 		ALL_ROUTE_TRIPS2 = map2;
 	}
 
@@ -267,17 +263,16 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 		}
 		if (mRoute.getId() == 25L) { // fix same direction ID for different direction
 			if (gTrip.getDirectionId() == 0) {
-				if (gTrip.getTripHeadsign().equals("Vers Symbiocité")) { // PM
+				if (gTrip.getTripHeadsign().equals("Symbiocité")) { // PM
 					mTrip.setHeadsignString(cleanTripHeadsign(gTrip.getTripHeadsign()), 0);
 					return;
 				}
-				if (gTrip.getTripHeadsign().equals("Vers Stationnement incitatif La Prairie")) { // AM
+				if (gTrip.getTripHeadsign().equals("Stationnement incitatif La Prairie")) { // AM
 					mTrip.setHeadsignString(cleanTripHeadsign(gTrip.getTripHeadsign()), 1);
 					return;
 				}
 			}
-			MTLog.logFatal("%d: Unexpected trip '%s'!", mRoute.getId(), gTrip);
-			return;
+			throw new MTLog.Fatal("%d: Unexpected trip '%s'!", mRoute.getId(), gTrip);
 		}
 		if (mRoute.getId() == 32L) {
 			if (gTrip.getTripHeadsign().contains("AM")) {
@@ -288,10 +283,41 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 				mTrip.setHeadsignString("PM", 1);
 				return;
 			}
-			MTLog.logFatal("%d: Unexpected trip '%s'!", mRoute.getId(), gTrip);
-			return;
+			throw new MTLog.Fatal("%d: Unexpected trip '%s'!", mRoute.getId(), gTrip);
 		}
-		mTrip.setHeadsignString(cleanTripHeadsign(gTrip.getTripHeadsign()), gTrip.getDirectionId());
+		if (true) {
+			if (mRoute.getId() == 340L) {
+				if (gTrip.getTripHeadsign().equals("Candiac-La Prairie-Longueuil-Cégep É-M")) {
+					mTrip.setHeadsignString(
+						cleanTripHeadsign(gTrip.getTripHeadsign()) + " " + gTrip.getDirectionIdOrDefault(),
+						gTrip.getDirectionIdOrDefault()
+					);
+					return;
+				}
+			}
+			if (mRoute.getId() == 341L) {
+				if (gTrip.getTripHeadsign().equals("La Prairie-Longueuil-Cégep É-M")) {
+					mTrip.setHeadsignString(
+						cleanTripHeadsign(gTrip.getTripHeadsign()) + " " + gTrip.getDirectionIdOrDefault(),
+						gTrip.getDirectionIdOrDefault()
+					);
+					return;
+				}
+			}
+			if (mRoute.getId() == 343L) {
+				if (gTrip.getTripHeadsign().equals("Candiac-Longueuil-Cégep É-M")) {
+					mTrip.setHeadsignString(
+						cleanTripHeadsign(gTrip.getTripHeadsign()) + " " + gTrip.getDirectionIdOrDefault(),
+						gTrip.getDirectionIdOrDefault()
+					);
+					return;
+				}
+			}
+		}
+		mTrip.setHeadsignString(
+			cleanTripHeadsign(gTrip.getTripHeadsign()),
+			gTrip.getDirectionIdOrDefault()
+		);
 	}
 
 	private static final Pattern DIRECTION = Pattern.compile("(direction )", Pattern.CASE_INSENSITIVE);
@@ -329,6 +355,13 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 				mTrip.setHeadsignString("Brossard", mTrip.getHeadsignId());
 				return true;
 			}
+			if (Arrays.asList( //
+					"Candiac", // <>
+					"Terminus Panama" //
+			).containsAll(headsignsValues)) {
+				mTrip.setHeadsignString("Terminus Panama", mTrip.getHeadsignId());
+				return true;
+			}
 		} else if (mTrip.getRouteId() == 340L) {
 			if (Arrays.asList( //
 					"Terminus Longueuil", // <>
@@ -340,16 +373,14 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 				return true;
 			}
 		}
-		System.out.printf("\nUnexpected trips to merge %s & %s!\n", mTrip, mTripToMerge);
-		System.exit(-1);
-		return false;
+		throw new MTLog.Fatal("Unexpected trips to merge %s & %s!", mTrip, mTripToMerge);
 	}
 
-	private static final Pattern START_WITH_FACE_A = Pattern.compile("^(face à )", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+	private static final Pattern START_WITH_FACE_A = Pattern.compile("^(face à )", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE | Pattern.CANON_EQ);
 	private static final Pattern START_WITH_FACE_AU = Pattern.compile("^(face au )", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
 	private static final Pattern START_WITH_FACE = Pattern.compile("^(face )", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
 
-	private static final Pattern SPACE_FACE_A = Pattern.compile("( face à )", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+	private static final Pattern SPACE_FACE_A = Pattern.compile("( face à )", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE | Pattern.CANON_EQ);
 	private static final Pattern SPACE_WITH_FACE_AU = Pattern.compile("( face au )", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
 	private static final Pattern SPACE_WITH_FACE = Pattern.compile("( face )", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
 
@@ -392,20 +423,15 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 			if (gStop.getStopId().startsWith("CAN")) {
 				stopId = 100000;
 			} else {
-				System.out.printf("\nStop doesn't have an ID (start with)! 5s\n", gStop);
-				System.exit(-1);
-				stopId = -1;
+				throw new MTLog.Fatal("Stop doesn't have an ID (start with)! 5s", gStop);
 			}
 			if (gStop.getStopId().endsWith("D")) {
 				stopId += 4000;
 			} else {
-				System.out.printf("\nStop doesn't have an ID (end with)! %s\n", gStop);
-				System.exit(-1);
+				throw new MTLog.Fatal("Stop doesn't have an ID (end with)! %s", gStop);
 			}
 			return stopId + digits;
 		}
-		System.out.printf("\nUnexpected stop ID for %s!\n", gStop);
-		System.exit(-1);
-		return -1;
+		throw new MTLog.Fatal("Unexpected stop ID for %s!", gStop);
 	}
 }
