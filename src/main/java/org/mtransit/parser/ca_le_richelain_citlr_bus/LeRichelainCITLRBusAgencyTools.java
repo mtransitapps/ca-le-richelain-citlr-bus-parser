@@ -1,38 +1,31 @@
 package org.mtransit.parser.ca_le_richelain_citlr_bus;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.mtransit.parser.CleanUtils;
 import org.mtransit.parser.DefaultAgencyTools;
 import org.mtransit.parser.MTLog;
-import org.mtransit.parser.Pair;
-import org.mtransit.parser.SplitUtils;
+import org.mtransit.parser.StringUtils;
 import org.mtransit.parser.Utils;
-import org.mtransit.parser.SplitUtils.RouteTripSpec;
 import org.mtransit.parser.gtfs.data.GCalendar;
 import org.mtransit.parser.gtfs.data.GCalendarDate;
 import org.mtransit.parser.gtfs.data.GRoute;
 import org.mtransit.parser.gtfs.data.GSpec;
 import org.mtransit.parser.gtfs.data.GStop;
 import org.mtransit.parser.gtfs.data.GTrip;
-import org.mtransit.parser.gtfs.data.GTripStop;
 import org.mtransit.parser.mt.data.MAgency;
 import org.mtransit.parser.mt.data.MRoute;
 import org.mtransit.parser.mt.data.MTrip;
-import org.mtransit.parser.mt.data.MTripStop;
+
+import java.util.HashSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 // https://exo.quebec/en/about/open-data
 // https://exo.quebec/xdata/citlr/google_transit.zip
 public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 
-	public static void main(String[] args) {
+	public static void main(@Nullable String[] args) {
 		if (args == null || args.length == 0) {
 			args = new String[3];
 			args[0] = "input/gtfs.zip";
@@ -42,63 +35,67 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 		new LeRichelainCITLRBusAgencyTools().start(args);
 	}
 
-	private HashSet<String> serviceIds;
+	@Nullable
+	private HashSet<Integer> serviceIdInts;
 
 	@Override
-	public void start(String[] args) {
+	public void start(@NotNull String[] args) {
 		MTLog.log("Generating CITLR bus data...");
 		long start = System.currentTimeMillis();
-		this.serviceIds = extractUsefulServiceIds(args, this, true);
+		this.serviceIdInts = extractUsefulServiceIdInts(args, this, true);
 		super.start(args);
 		MTLog.log("Generating CITLR bus data... DONE in %s.", Utils.getPrettyDuration(System.currentTimeMillis() - start));
 	}
 
 	@Override
 	public boolean excludingAll() {
-		return this.serviceIds != null && this.serviceIds.isEmpty();
+		return this.serviceIdInts != null && this.serviceIdInts.isEmpty();
 	}
 
 	@Override
-	public boolean excludeCalendar(GCalendar gCalendar) {
-		if (this.serviceIds != null) {
-			return excludeUselessCalendar(gCalendar, this.serviceIds);
+	public boolean excludeCalendar(@NotNull GCalendar gCalendar) {
+		if (this.serviceIdInts != null) {
+			return excludeUselessCalendarInt(gCalendar, this.serviceIdInts);
 		}
 		return super.excludeCalendar(gCalendar);
 	}
 
 	@Override
-	public boolean excludeCalendarDate(GCalendarDate gCalendarDates) {
-		if (this.serviceIds != null) {
-			return excludeUselessCalendarDate(gCalendarDates, this.serviceIds);
+	public boolean excludeCalendarDate(@NotNull GCalendarDate gCalendarDates) {
+		if (this.serviceIdInts != null) {
+			return excludeUselessCalendarDateInt(gCalendarDates, this.serviceIdInts);
 		}
 		return super.excludeCalendarDate(gCalendarDates);
 	}
 
 	@Override
-	public boolean excludeTrip(GTrip gTrip) {
-		if (this.serviceIds != null) {
-			return excludeUselessTrip(gTrip, this.serviceIds);
+	public boolean excludeTrip(@NotNull GTrip gTrip) {
+		if (this.serviceIdInts != null) {
+			return excludeUselessTripInt(gTrip, this.serviceIdInts);
 		}
 		return super.excludeTrip(gTrip);
 	}
 
+	@NotNull
 	@Override
 	public Integer getAgencyRouteType() {
 		return MAgency.ROUTE_TYPE_BUS;
 	}
 
+	@NotNull
 	@Override
-	public String getRouteLongName(GRoute gRoute) {
+	public String getRouteLongName(@NotNull GRoute gRoute) {
 		String routeLongName = gRoute.getRouteLongName();
 		routeLongName = CleanUtils.SAINT.matcher(routeLongName).replaceAll(CleanUtils.SAINT_REPLACEMENT);
 		return CleanUtils.cleanLabel(routeLongName);
 	}
 
-	private static final Pattern CLEAN_TAXI = Pattern.compile("T\\-([\\d]+)", Pattern.CASE_INSENSITIVE);
+	private static final Pattern CLEAN_TAXI = Pattern.compile("T-([\\d]+)", Pattern.CASE_INSENSITIVE);
 	private static final String CLEAN_TAXI_REPLACEMENT = "T$1";
 
+	@Nullable
 	@Override
-	public String getRouteShortName(GRoute gRoute) {
+	public String getRouteShortName(@NotNull GRoute gRoute) {
 		String routeShortName = gRoute.getRouteShortName();
 		routeShortName = CLEAN_TAXI.matcher(routeShortName).replaceAll(CLEAN_TAXI_REPLACEMENT);
 		return routeShortName;
@@ -109,7 +106,7 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 	private static final long RID_STARTS_WITH_T = 20_000L;
 
 	@Override
-	public long getRouteId(GRoute gRoute) {
+	public long getRouteId(@NotNull GRoute gRoute) {
 		if (!Utils.isDigitsOnly(gRoute.getRouteShortName())) {
 			Matcher matcher = DIGITS.matcher(gRoute.getRouteShortName());
 			if (matcher.find()) {
@@ -125,6 +122,7 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 
 	private static final String AGENCY_COLOR = "1F1F1F"; // DARK GRAY (from GTFS)
 
+	@NotNull
 	@Override
 	public String getAgencyColor() {
 		return AGENCY_COLOR;
@@ -186,8 +184,9 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 	private static final String RSN_T_37 = "T-37";
 	private static final String RSN_T_51 = "T-51";
 
+	@Nullable
 	@Override
-	public String getRouteColor(GRoute gRoute) {
+	public String getRouteColor(@NotNull GRoute gRoute) {
 		if (StringUtils.isEmpty(gRoute.getRouteColor())) {
 			if (RSN_11.equals(gRoute.getRouteShortName())) return COLOR_FF7C80;
 			if (RSN_21.equals(gRoute.getRouteShortName())) return COLOR_B1A0C7;
@@ -226,98 +225,17 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 		return super.getRouteColor(gRoute);
 	}
 
-	private static final HashMap<Long, RouteTripSpec> ALL_ROUTE_TRIPS2;
-	static {
-		HashMap<Long, RouteTripSpec> map2 = new HashMap<>();
-		ALL_ROUTE_TRIPS2 = map2;
-	}
-
 	@Override
-	public int compareEarly(long routeId, List<MTripStop> list1, List<MTripStop> list2, MTripStop ts1, MTripStop ts2, GStop ts1GStop, GStop ts2GStop) {
-		if (ALL_ROUTE_TRIPS2.containsKey(routeId)) {
-			return ALL_ROUTE_TRIPS2.get(routeId).compare(routeId, list1, list2, ts1, ts2, ts1GStop, ts2GStop, this);
-		}
-		return super.compareEarly(routeId, list1, list2, ts1, ts2, ts1GStop, ts2GStop);
-	}
-
-	@Override
-	public ArrayList<MTrip> splitTrip(MRoute mRoute, GTrip gTrip, GSpec gtfs) {
-		if (ALL_ROUTE_TRIPS2.containsKey(mRoute.getId())) {
-			return ALL_ROUTE_TRIPS2.get(mRoute.getId()).getAllTrips();
-		}
-		return super.splitTrip(mRoute, gTrip, gtfs);
-	}
-
-	@Override
-	public Pair<Long[], Integer[]> splitTripStop(MRoute mRoute, GTrip gTrip, GTripStop gTripStop, ArrayList<MTrip> splitTrips, GSpec routeGTFS) {
-		if (ALL_ROUTE_TRIPS2.containsKey(mRoute.getId())) {
-			return SplitUtils.splitTripStop(mRoute, gTrip, gTripStop, routeGTFS, ALL_ROUTE_TRIPS2.get(mRoute.getId()), this);
-		}
-		return super.splitTripStop(mRoute, gTrip, gTripStop, splitTrips, routeGTFS);
-	}
-
-	@Override
-	public void setTripHeadsign(MRoute mRoute, MTrip mTrip, GTrip gTrip, GSpec gtfs) {
-		if (ALL_ROUTE_TRIPS2.containsKey(mRoute.getId())) {
-			return; // split
-		}
-		if (mRoute.getId() == 25L) { // fix same direction ID for different direction
-			if (gTrip.getDirectionId() == 0) {
-				if (gTrip.getTripHeadsign().equals("Symbiocité")) { // PM
-					mTrip.setHeadsignString(cleanTripHeadsign(gTrip.getTripHeadsign()), 0);
-					return;
-				}
-				if (gTrip.getTripHeadsign().equals("Stationnement incitatif La Prairie")) { // AM
-					mTrip.setHeadsignString(cleanTripHeadsign(gTrip.getTripHeadsign()), 1);
-					return;
-				}
-			}
-			throw new MTLog.Fatal("%d: Unexpected trip '%s'!", mRoute.getId(), gTrip);
-		}
-		if (mRoute.getId() == 32L) {
-			if (gTrip.getTripHeadsign().contains("AM")) {
-				mTrip.setHeadsignString("AM", 0);
-				return;
-			}
-			if (gTrip.getTripHeadsign().contains("PM")) {
-				mTrip.setHeadsignString("PM", 1);
-				return;
-			}
-			throw new MTLog.Fatal("%d: Unexpected trip '%s'!", mRoute.getId(), gTrip);
-		}
-		if (true) {
-			if (mRoute.getId() == 340L) {
-				if (gTrip.getTripHeadsign().equals("Candiac-La Prairie-Longueuil-Cégep É-M")) {
-					mTrip.setHeadsignString(
-						cleanTripHeadsign(gTrip.getTripHeadsign()) + " " + gTrip.getDirectionIdOrDefault(),
-						gTrip.getDirectionIdOrDefault()
-					);
-					return;
-				}
-			}
-			if (mRoute.getId() == 341L) {
-				if (gTrip.getTripHeadsign().equals("La Prairie-Longueuil-Cégep É-M")) {
-					mTrip.setHeadsignString(
-						cleanTripHeadsign(gTrip.getTripHeadsign()) + " " + gTrip.getDirectionIdOrDefault(),
-						gTrip.getDirectionIdOrDefault()
-					);
-					return;
-				}
-			}
-			if (mRoute.getId() == 343L) {
-				if (gTrip.getTripHeadsign().equals("Candiac-Longueuil-Cégep É-M")) {
-					mTrip.setHeadsignString(
-						cleanTripHeadsign(gTrip.getTripHeadsign()) + " " + gTrip.getDirectionIdOrDefault(),
-						gTrip.getDirectionIdOrDefault()
-					);
-					return;
-				}
-			}
-		}
+	public void setTripHeadsign(@NotNull MRoute mRoute, @NotNull MTrip mTrip, @NotNull GTrip gTrip, @NotNull GSpec gtfs) {
 		mTrip.setHeadsignString(
-			cleanTripHeadsign(gTrip.getTripHeadsign()),
-			gTrip.getDirectionIdOrDefault()
+				cleanTripHeadsign(gTrip.getTripHeadsignOrDefault()),
+				gTrip.getDirectionIdOrDefault()
 		);
+	}
+
+	@Override
+	public boolean directionFinderEnabled() {
+		return true;
 	}
 
 	private static final Pattern DIRECTION = Pattern.compile("(direction )", Pattern.CASE_INSENSITIVE);
@@ -332,8 +250,9 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 
 	private static final Pattern FROM_DASH_TO_ = Pattern.compile("[^\\-]+ - ", Pattern.CASE_INSENSITIVE);
 
+	@NotNull
 	@Override
-	public String cleanTripHeadsign(String tripHeadsign) {
+	public String cleanTripHeadsign(@NotNull String tripHeadsign) {
 		tripHeadsign = CleanUtils.keepToFR(tripHeadsign);
 		tripHeadsign = DIRECTION.matcher(tripHeadsign).replaceAll(StringUtils.EMPTY);
 		tripHeadsign = STATIONNEMENT_INCITATIF_.matcher(tripHeadsign).replaceAll(STATIONNEMENT_INCITATIF_REPLACEMENT);
@@ -345,34 +264,7 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 	}
 
 	@Override
-	public boolean mergeHeadsign(MTrip mTrip, MTrip mTripToMerge) {
-		List<String> headsignsValues = Arrays.asList(mTrip.getHeadsignValue(), mTripToMerge.getHeadsignValue());
-		if (mTrip.getRouteId() == RID_STARTS_WITH_T + 51L) { // T51
-			if (Arrays.asList( //
-					"Candiac", // <>
-					"Brossard" //
-			).containsAll(headsignsValues)) {
-				mTrip.setHeadsignString("Brossard", mTrip.getHeadsignId());
-				return true;
-			}
-			if (Arrays.asList( //
-					"Candiac", // <>
-					"Terminus Panama" //
-			).containsAll(headsignsValues)) {
-				mTrip.setHeadsignString("Terminus Panama", mTrip.getHeadsignId());
-				return true;
-			}
-		} else if (mTrip.getRouteId() == 340L) {
-			if (Arrays.asList( //
-					"Terminus Longueuil", // <>
-					"Prairie", //
-					"Prairie / Candiac", //
-					"Cégep" //
-			).containsAll(headsignsValues)) {
-				mTrip.setHeadsignString("Cégep", mTrip.getHeadsignId());
-				return true;
-			}
-		}
+	public boolean mergeHeadsign(@NotNull MTrip mTrip, @NotNull MTrip mTripToMerge) {
 		throw new MTLog.Fatal("Unexpected trips to merge %s & %s!", mTrip, mTripToMerge);
 	}
 
@@ -384,15 +276,16 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 	private static final Pattern SPACE_WITH_FACE_AU = Pattern.compile("( face au )", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
 	private static final Pattern SPACE_WITH_FACE = Pattern.compile("( face )", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
 
-	private static final Pattern[] START_WITH_FACES = new Pattern[] { START_WITH_FACE_A, START_WITH_FACE_AU, START_WITH_FACE };
+	private static final Pattern[] START_WITH_FACES = new Pattern[]{START_WITH_FACE_A, START_WITH_FACE_AU, START_WITH_FACE};
 
-	private static final Pattern[] SPACE_FACES = new Pattern[] { SPACE_FACE_A, SPACE_WITH_FACE_AU, SPACE_WITH_FACE };
+	private static final Pattern[] SPACE_FACES = new Pattern[]{SPACE_FACE_A, SPACE_WITH_FACE_AU, SPACE_WITH_FACE};
 
 	private static final Pattern AVENUE = Pattern.compile("( avenue)", Pattern.CASE_INSENSITIVE);
 	private static final String AVENUE_REPLACEMENT = " av.";
 
+	@NotNull
 	@Override
-	public String cleanStopName(String gStopName) {
+	public String cleanStopName(@NotNull String gStopName) {
 		gStopName = STATIONNEMENT_INCITATIF_.matcher(gStopName).replaceAll(STATIONNEMENT_INCITATIF_REPLACEMENT);
 		gStopName = AVENUE.matcher(gStopName).replaceAll(AVENUE_REPLACEMENT);
 		gStopName = Utils.replaceAll(gStopName, START_WITH_FACES, CleanUtils.SPACE);
@@ -400,8 +293,9 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 		return CleanUtils.cleanLabelFR(gStopName);
 	}
 
+	@NotNull
 	@Override
-	public String getStopCode(GStop gStop) {
+	public String getStopCode(@NotNull GStop gStop) {
 		if ("0".equals(gStop.getStopCode())) {
 			return null;
 		}
@@ -411,22 +305,24 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 	private static final Pattern DIGITS = Pattern.compile("[\\d]+");
 
 	@Override
-	public int getStopId(GStop gStop) {
+	public int getStopId(@NotNull GStop gStop) {
 		String stopCode = getStopCode(gStop);
 		if (stopCode != null && stopCode.length() > 0) {
-			return Integer.valueOf(stopCode); // using stop code as stop ID
+			return Integer.parseInt(stopCode); // using stop code as stop ID
 		}
-		Matcher matcher = DIGITS.matcher(gStop.getStopId());
+		//noinspection deprecation
+		final String stopId1 = gStop.getStopId();
+		Matcher matcher = DIGITS.matcher(stopId1);
 		if (matcher.find()) {
 			int digits = Integer.parseInt(matcher.group());
 			int stopId;
-			if (gStop.getStopId().startsWith("CAN")) {
-				stopId = 100000;
+			if (stopId1.startsWith("CAN")) {
+				stopId = 100_000;
 			} else {
 				throw new MTLog.Fatal("Stop doesn't have an ID (start with)! 5s", gStop);
 			}
-			if (gStop.getStopId().endsWith("D")) {
-				stopId += 4000;
+			if (stopId1.endsWith("D")) {
+				stopId += 4_000;
 			} else {
 				throw new MTLog.Fatal("Stop doesn't have an ID (end with)! %s", gStop);
 			}
