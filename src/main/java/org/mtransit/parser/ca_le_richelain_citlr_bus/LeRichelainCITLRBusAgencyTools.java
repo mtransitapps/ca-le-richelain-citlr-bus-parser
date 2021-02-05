@@ -2,10 +2,15 @@ package org.mtransit.parser.ca_le_richelain_citlr_bus;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.mtransit.parser.CleanUtils;
+import org.mtransit.commons.CharUtils;
+import org.mtransit.commons.CleanUtils;
+import org.mtransit.commons.RegexUtils;
+import org.mtransit.commons.StringUtils;
 import org.mtransit.parser.DefaultAgencyTools;
 import org.mtransit.parser.MTLog;
-import org.mtransit.parser.StringUtils;
+import org.mtransit.parser.Pair;
+import org.mtransit.parser.SplitUtils;
+import org.mtransit.parser.SplitUtils.RouteTripSpec;
 import org.mtransit.parser.Utils;
 import org.mtransit.parser.gtfs.data.GCalendar;
 import org.mtransit.parser.gtfs.data.GCalendarDate;
@@ -13,13 +18,23 @@ import org.mtransit.parser.gtfs.data.GRoute;
 import org.mtransit.parser.gtfs.data.GSpec;
 import org.mtransit.parser.gtfs.data.GStop;
 import org.mtransit.parser.gtfs.data.GTrip;
+import org.mtransit.parser.gtfs.data.GTripStop;
 import org.mtransit.parser.mt.data.MAgency;
 import org.mtransit.parser.mt.data.MRoute;
 import org.mtransit.parser.mt.data.MTrip;
+import org.mtransit.parser.mt.data.MTripStop;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static org.mtransit.commons.Constants.SPACE_;
+import static org.mtransit.commons.StringUtils.EMPTY;
 
 // https://exo.quebec/en/about/open-data
 // https://exo.quebec/xdata/citlr/google_transit.zip
@@ -107,7 +122,7 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 
 	@Override
 	public long getRouteId(@NotNull GRoute gRoute) {
-		if (!Utils.isDigitsOnly(gRoute.getRouteShortName())) {
+		if (!CharUtils.isDigitsOnly(gRoute.getRouteShortName())) {
 			Matcher matcher = DIGITS.matcher(gRoute.getRouteShortName());
 			if (matcher.find()) {
 				int digits = Integer.parseInt(matcher.group());
@@ -225,8 +240,70 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 		return super.getRouteColor(gRoute);
 	}
 
+	private static final HashMap<Long, RouteTripSpec> ALL_ROUTE_TRIPS2;
+
+	static {
+		HashMap<Long, RouteTripSpec> map2 = new HashMap<>();
+		//noinspection deprecation
+		map2.put(340L, new RouteTripSpec(340L, //
+				0, MTrip.HEADSIGN_TYPE_STRING, "Term Longueuil", //
+				1, MTrip.HEADSIGN_TYPE_STRING, "P+R Candiac") //
+				.addTripSort(0, //
+						Arrays.asList(
+								"75642", // P+R Candiac <=
+								"75399", // ++
+								"75181", // ++
+								"75647",  // P+R La Prairie
+								"75040", // ++
+								"75038", // ++
+								"75030" // Terminus Longueuil ==>
+						)) //
+				.addTripSort(1, //
+						Arrays.asList(
+								"75030", // Terminus Longueuil <=
+								"75037", // ++
+								"75039", // ++
+								"75647", // P+R La Prairie
+								"75180", // ++
+								"75104", // ++
+								"75642" // P+R Candiac =>
+						)) //
+				.compileBothTripSort());
+
+		ALL_ROUTE_TRIPS2 = map2;
+	}
+
+	@Override
+	public int compareEarly(long routeId, @NotNull List<MTripStop> list1, @NotNull List<MTripStop> list2, @NotNull MTripStop ts1, @NotNull MTripStop ts2, @NotNull GStop ts1GStop, @NotNull GStop ts2GStop) {
+		if (ALL_ROUTE_TRIPS2.containsKey(routeId)) {
+			return ALL_ROUTE_TRIPS2.get(routeId).compare(routeId, list1, list2, ts1, ts2, ts1GStop, ts2GStop, this);
+		}
+		return super.compareEarly(routeId, list1, list2, ts1, ts2, ts1GStop, ts2GStop);
+	}
+
+	@NotNull
+	@Override
+	public ArrayList<MTrip> splitTrip(@NotNull MRoute mRoute, @Nullable GTrip gTrip, @NotNull GSpec gtfs) {
+		if (ALL_ROUTE_TRIPS2.containsKey(mRoute.getId())) {
+			return ALL_ROUTE_TRIPS2.get(mRoute.getId()).getAllTrips();
+		}
+		return super.splitTrip(mRoute, gTrip, gtfs);
+	}
+
+	@NotNull
+	@Override
+	public Pair<Long[], Integer[]> splitTripStop(@NotNull MRoute mRoute, @NotNull GTrip gTrip, @NotNull GTripStop gTripStop, @NotNull ArrayList<MTrip> splitTrips, @NotNull GSpec routeGTFS) {
+		if (ALL_ROUTE_TRIPS2.containsKey(mRoute.getId())) {
+			return SplitUtils.splitTripStop(mRoute, gTrip, gTripStop, routeGTFS, ALL_ROUTE_TRIPS2.get(mRoute.getId()), this);
+		}
+		return super.splitTripStop(mRoute, gTrip, gTripStop, splitTrips, routeGTFS);
+	}
+
 	@Override
 	public void setTripHeadsign(@NotNull MRoute mRoute, @NotNull MTrip mTrip, @NotNull GTrip gTrip, @NotNull GSpec gtfs) {
+		if (ALL_ROUTE_TRIPS2.containsKey(mRoute.getId())) {
+			return; // split
+		}
 		mTrip.setHeadsignString(
 				cleanTripHeadsign(gTrip.getTripHeadsignOrDefault()),
 				gTrip.getDirectionIdOrDefault()
@@ -238,27 +315,40 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 		return true;
 	}
 
-	private static final Pattern DIRECTION = Pattern.compile("(direction )", Pattern.CASE_INSENSITIVE);
+	@Override
+	public boolean directionFinderEnabled(long routeId, @NotNull GRoute gRoute) {
+		if (routeId == 340L) {
+			return false; // 2 direction_id w/ same head-sign & last stop & !AM/PM (should be 1 direction_id?)
+		}
+		return super.directionFinderEnabled(routeId, gRoute);
+	}
 
-	private static final Pattern SECTEUR = Pattern.compile("(secteur[s]? )", Pattern.CASE_INSENSITIVE);
+	@NotNull
+	@Override
+	public String cleanDirectionHeadsign(boolean fromStopName, @NotNull String directionHeadSign) {
+		if (!fromStopName) {
+			final String directionHeadSignLC = directionHeadSign.toLowerCase(Locale.FRENCH);
+			if (directionHeadSignLC.endsWith(" am")) {
+				return "AM";
+			} else if (directionHeadSignLC.endsWith(" pm")) {
+				return "PM";
+			}
+		}
+		return super.cleanDirectionHeadsign(fromStopName, directionHeadSign);
+	}
 
-	private static final Pattern SERVICE = Pattern.compile("(service) ([a|p]m)", Pattern.CASE_INSENSITIVE);
-	private static final String SERVICE_REPLACEMENT = "$2";
+	private static final Pattern EXPRESS_ = CleanUtils.cleanWordsFR("express");
 
-	private static final Pattern STATIONNEMENT_INCITATIF_ = CleanUtils.cleanWords("stationnement incitatif");
-	private static final String STATIONNEMENT_INCITATIF_REPLACEMENT = CleanUtils.cleanWordsReplacement("Stat Incitatif");
-
-	private static final Pattern FROM_DASH_TO_ = Pattern.compile("[^\\-]+ - ", Pattern.CASE_INSENSITIVE);
+	private static final Pattern _DASH_ = Pattern.compile("( - | – )");
+	private static final String _DASH_REPLACEMENT = "<>"; // form<>to
 
 	@NotNull
 	@Override
 	public String cleanTripHeadsign(@NotNull String tripHeadsign) {
 		tripHeadsign = CleanUtils.keepToFR(tripHeadsign);
-		tripHeadsign = DIRECTION.matcher(tripHeadsign).replaceAll(StringUtils.EMPTY);
-		tripHeadsign = STATIONNEMENT_INCITATIF_.matcher(tripHeadsign).replaceAll(STATIONNEMENT_INCITATIF_REPLACEMENT);
-		tripHeadsign = SECTEUR.matcher(tripHeadsign).replaceAll(StringUtils.EMPTY);
-		tripHeadsign = SERVICE.matcher(tripHeadsign).replaceAll(SERVICE_REPLACEMENT);
-		tripHeadsign = FROM_DASH_TO_.matcher(tripHeadsign).replaceAll(StringUtils.EMPTY);
+		tripHeadsign = _DASH_.matcher(tripHeadsign).replaceAll(_DASH_REPLACEMENT); // from - to => form<>to
+		tripHeadsign = EXPRESS_.matcher(tripHeadsign).replaceAll(EMPTY);
+		tripHeadsign = CleanUtils.cleanBounds(Locale.FRENCH, tripHeadsign);
 		tripHeadsign = CleanUtils.cleanStreetTypesFRCA(tripHeadsign);
 		return CleanUtils.cleanLabelFR(tripHeadsign);
 	}
@@ -280,16 +370,17 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 
 	private static final Pattern[] SPACE_FACES = new Pattern[]{SPACE_FACE_A, SPACE_WITH_FACE_AU, SPACE_WITH_FACE};
 
-	private static final Pattern AVENUE = Pattern.compile("( avenue)", Pattern.CASE_INSENSITIVE);
-	private static final String AVENUE_REPLACEMENT = " av.";
+	private static final Pattern DEVANT_ = CleanUtils.cleanWordsFR("devant");
 
 	@NotNull
 	@Override
 	public String cleanStopName(@NotNull String gStopName) {
-		gStopName = STATIONNEMENT_INCITATIF_.matcher(gStopName).replaceAll(STATIONNEMENT_INCITATIF_REPLACEMENT);
-		gStopName = AVENUE.matcher(gStopName).replaceAll(AVENUE_REPLACEMENT);
-		gStopName = Utils.replaceAll(gStopName, START_WITH_FACES, CleanUtils.SPACE);
-		gStopName = Utils.replaceAll(gStopName, SPACE_FACES, CleanUtils.SPACE);
+		gStopName = _DASH_.matcher(gStopName).replaceAll(SPACE_);
+		gStopName = DEVANT_.matcher(gStopName).replaceAll(EMPTY);
+		gStopName = RegexUtils.replaceAll(gStopName, START_WITH_FACES, CleanUtils.SPACE);
+		gStopName = RegexUtils.replaceAll(gStopName, SPACE_FACES, CleanUtils.SPACE);
+		gStopName = CleanUtils.cleanBounds(Locale.FRENCH, gStopName);
+		gStopName = CleanUtils.cleanStreetTypesFRCA(gStopName);
 		return CleanUtils.cleanLabelFR(gStopName);
 	}
 
