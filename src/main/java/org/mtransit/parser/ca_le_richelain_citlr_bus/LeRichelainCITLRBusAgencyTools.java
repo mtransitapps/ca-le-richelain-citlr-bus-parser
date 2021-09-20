@@ -1,5 +1,7 @@
 package org.mtransit.parser.ca_le_richelain_citlr_bus;
 
+import static org.mtransit.commons.RegexUtils.DIGITS;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.mtransit.commons.CharUtils;
@@ -11,6 +13,7 @@ import org.mtransit.parser.gtfs.data.GRoute;
 import org.mtransit.parser.gtfs.data.GStop;
 import org.mtransit.parser.mt.data.MAgency;
 
+import java.util.List;
 import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -24,6 +27,12 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 
 	public static void main(@NotNull String[] args) {
 		new LeRichelainCITLRBusAgencyTools().start(args);
+	}
+
+	@Nullable
+	@Override
+	public List<Locale> getSupportedLanguages() {
+		return LANG_FR;
 	}
 
 	@Override
@@ -43,6 +52,11 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 		return MAgency.ROUTE_TYPE_BUS;
 	}
 
+	@Override
+	public boolean defaultRouteLongNameEnabled() {
+		return true;
+	}
+
 	@NotNull
 	@Override
 	public String cleanRouteLongName(@NotNull String routeLongName) {
@@ -53,39 +67,26 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 	private static final Pattern CLEAN_TAXI = Pattern.compile("T-([\\d]+)", Pattern.CASE_INSENSITIVE);
 	private static final String CLEAN_TAXI_REPLACEMENT = "T$1";
 
-	@Nullable
+	@NotNull
 	@Override
-	public String getRouteShortName(@NotNull GRoute gRoute) {
-		String routeShortName = gRoute.getRouteShortName();
+	public String cleanRouteShortName(@NotNull String routeShortName) {
 		routeShortName = CLEAN_TAXI.matcher(routeShortName).replaceAll(CLEAN_TAXI_REPLACEMENT);
 		return routeShortName;
 	}
 
-	private static final String T = "T";
-
-	private static final long RID_STARTS_WITH_T = 20_000L;
-
 	@Override
-	public long getRouteId(@NotNull GRoute gRoute) {
-		if (!CharUtils.isDigitsOnly(gRoute.getRouteShortName())) {
-			final Matcher matcher = DIGITS.matcher(gRoute.getRouteShortName());
-			if (matcher.find()) {
-				final int digits = Integer.parseInt(matcher.group());
-				if (gRoute.getRouteShortName().startsWith(T)) {
-					return RID_STARTS_WITH_T + digits;
-				}
-			}
-			throw new MTLog.Fatal("Unexpected route ID for %s!", gRoute);
-		}
-		return Long.parseLong(gRoute.getRouteShortName());
+	public boolean defaultRouteIdEnabled() {
+		return true;
 	}
 
-	private static final String AGENCY_COLOR = "1F1F1F"; // DARK GRAY (from GTFS)
-
-	@NotNull
 	@Override
-	public String getAgencyColor() {
-		return AGENCY_COLOR;
+	public boolean useRouteShortNameForRouteId() {
+		return true;
+	}
+
+	@Override
+	public boolean defaultAgencyColorEnabled() {
+		return true;
 	}
 
 	@Override
@@ -166,8 +167,6 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 		}
 		return super.getStopCode(gStop);
 	}
-
-	private static final Pattern DIGITS = Pattern.compile("[\\d]+");
 
 	@Override
 	public int getStopId(@NotNull GStop gStop) {
