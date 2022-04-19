@@ -95,12 +95,11 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 	}
 
 	@Override
-	public boolean directionSplitterEnabled(long routeId) {
-		//noinspection RedundantIfStatement
+	public boolean directionOverrideId(long routeId) {
 		if (routeId == 340L) {
 			return true; // merge 2 directions (loop)
 		}
-		return false;
+		return super.directionOverrideId(routeId);
 	}
 
 	@Override
