@@ -90,8 +90,8 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 	}
 
 	@Override
-	public boolean directionSplitterEnabled() {
-		return true;
+	public boolean directionSplitterEnabled(long routeId) {
+		return true; // try for all
 	}
 
 	@Override
