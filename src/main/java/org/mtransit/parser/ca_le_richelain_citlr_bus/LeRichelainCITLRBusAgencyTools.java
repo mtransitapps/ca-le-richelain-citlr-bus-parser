@@ -1,6 +1,8 @@
 package org.mtransit.parser.ca_le_richelain_citlr_bus;
 
+import static org.mtransit.commons.Constants.SPACE_;
 import static org.mtransit.commons.RegexUtils.DIGITS;
+import static org.mtransit.commons.StringUtils.EMPTY;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -9,7 +11,6 @@ import org.mtransit.commons.CleanUtils;
 import org.mtransit.commons.RegexUtils;
 import org.mtransit.parser.DefaultAgencyTools;
 import org.mtransit.parser.MTLog;
-import org.mtransit.parser.gtfs.data.GRoute;
 import org.mtransit.parser.gtfs.data.GStop;
 import org.mtransit.parser.mt.data.MAgency;
 
@@ -17,9 +18,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import static org.mtransit.commons.Constants.SPACE_;
-import static org.mtransit.commons.StringUtils.EMPTY;
 
 // https://exo.quebec/en/about/open-data
 // https://exo.quebec/xdata/citlr/google_transit.zip
@@ -91,15 +89,15 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 
 	@Override
 	public boolean directionSplitterEnabled(long routeId) {
-		return true; // try for all
+		return true; // try for all w/o direction IDs (not already splitted)
 	}
 
 	@Override
-	public boolean directionOverrideId(long routeId) {
+	public boolean allowNonDescriptiveHeadSigns(long routeId) {
 		if (routeId == 340L) {
 			return true; // merge 2 directions (loop)
 		}
-		return super.directionOverrideId(routeId);
+		return super.allowNonDescriptiveHeadSigns(routeId);
 	}
 
 	@Override
