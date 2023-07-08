@@ -11,6 +11,7 @@ import org.mtransit.commons.CleanUtils;
 import org.mtransit.commons.RegexUtils;
 import org.mtransit.parser.DefaultAgencyTools;
 import org.mtransit.parser.MTLog;
+import org.mtransit.parser.gtfs.data.GRoute;
 import org.mtransit.parser.gtfs.data.GStop;
 import org.mtransit.parser.mt.data.MAgency;
 
@@ -20,7 +21,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 // https://exo.quebec/en/about/open-data
-// https://exo.quebec/xdata/citlr/google_transit.zip
 public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 
 	public static void main(@NotNull String[] args) {
@@ -62,7 +62,7 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 		return CleanUtils.cleanLabel(routeLongName);
 	}
 
-	private static final Pattern CLEAN_TAXI = Pattern.compile("T-([\\d]+)", Pattern.CASE_INSENSITIVE);
+	private static final Pattern CLEAN_TAXI = Pattern.compile("T-(\\d+)", Pattern.CASE_INSENSITIVE);
 	private static final String CLEAN_TAXI_REPLACEMENT = "T$1";
 
 	@NotNull
@@ -80,6 +80,12 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 	@Override
 	public boolean useRouteShortNameForRouteId() {
 		return true;
+	}
+
+	@NotNull
+	@Override
+	public String getRouteShortName(@NotNull GRoute gRoute) {
+		return gRoute.getRouteShortName(); // used by GTFS-RT
 	}
 
 	@Override
@@ -109,9 +115,9 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 
 	@NotNull
 	@Override
-	public String cleanDirectionHeadsign(boolean fromStopName, @NotNull String directionHeadSign) {
+	public String cleanDirectionHeadsign(int directionId, boolean fromStopName, @NotNull String directionHeadSign) {
 		directionHeadSign = ENDS_W_AM_PM_.matcher(directionHeadSign).replaceAll(EMPTY);
-		return super.cleanDirectionHeadsign(fromStopName, directionHeadSign);
+		return super.cleanDirectionHeadsign(directionId, fromStopName, directionHeadSign);
 	}
 
 	private static final Pattern EXPRESS_ = CleanUtils.cleanWordsFR("express");
@@ -162,7 +168,8 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 		if ("0".equals(gStop.getStopCode())) {
 			return EMPTY;
 		}
-		return super.getStopCode(gStop);
+		//noinspection deprecation
+		return gStop.getStopId(); // used by GTFS-RT
 	}
 
 	@Override
