@@ -1,7 +1,11 @@
 package org.mtransit.parser.ca_le_richelain_citlr_bus;
 
 import static org.mtransit.commons.Constants.SPACE_;
+import static org.mtransit.commons.RegexUtils.ANY;
 import static org.mtransit.commons.RegexUtils.DIGITS;
+import static org.mtransit.commons.RegexUtils.group;
+import static org.mtransit.commons.RegexUtils.oneOrMore;
+import static org.mtransit.commons.RegexUtils.or;
 import static org.mtransit.commons.StringUtils.EMPTY;
 
 import org.jetbrains.annotations.NotNull;
@@ -41,7 +45,7 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 	@NotNull
 	@Override
 	public String getAgencyName() {
-		return "exo Le Richelain";
+		return "exo Le Richelain / Roussillon";
 	}
 
 	@NotNull
@@ -99,14 +103,6 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 	}
 
 	@Override
-	public boolean allowNonDescriptiveHeadSigns(long routeId) {
-		if (routeId == 340L) {
-			return true; // merge 2 directions (loop)
-		}
-		return super.allowNonDescriptiveHeadSigns(routeId);
-	}
-
-	@Override
 	public boolean directionFinderEnabled() {
 		return true;
 	}
@@ -122,6 +118,11 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 
 	private static final Pattern EXPRESS_ = CleanUtils.cleanWordsFR("express");
 
+	private static final Pattern CW_CCW_FR_ = Pattern.compile(
+			group(oneOrMore(ANY) + " " + group(or("anti\\-horaire", "horaire"))),
+			Pattern.CASE_INSENSITIVE);
+	private static final String CW_CCW_FR_REPLACEMENT = "$2";
+
 	private static final Pattern _DASH_ = Pattern.compile("( - | – )");
 	private static final String _DASH_REPLACEMENT = "<>"; // form<>to
 
@@ -129,6 +130,7 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 	@Override
 	public String cleanTripHeadsign(@NotNull String tripHeadsign) {
 		tripHeadsign = CleanUtils.keepToFR(tripHeadsign);
+		tripHeadsign = CW_CCW_FR_.matcher(tripHeadsign).replaceAll(CW_CCW_FR_REPLACEMENT);
 		tripHeadsign = _DASH_.matcher(tripHeadsign).replaceAll(_DASH_REPLACEMENT); // from - to => form<>to
 		tripHeadsign = EXPRESS_.matcher(tripHeadsign).replaceAll(EMPTY);
 		tripHeadsign = CleanUtils.cleanBounds(Locale.FRENCH, tripHeadsign);

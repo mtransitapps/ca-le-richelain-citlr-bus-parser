@@ -1,4 +1,4 @@
 ca-le-richelain-citlr-bus-parser
 ================================
 
-Parser for Le Richelain CIT Bus data
+Parser for exo Le Richelain / Roussillon buses data
