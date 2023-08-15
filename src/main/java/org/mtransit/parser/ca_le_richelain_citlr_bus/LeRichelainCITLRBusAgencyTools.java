@@ -103,6 +103,14 @@ public class LeRichelainCITLRBusAgencyTools extends DefaultAgencyTools {
 	}
 
 	@Override
+	public boolean allowNonDescriptiveHeadSigns(long routeId) {
+		if (routeId == 143L) {
+			return true; // horaire / Anti-horaire mixed
+		}
+		return super.allowNonDescriptiveHeadSigns(routeId);
+	}
+
+	@Override
 	public boolean directionFinderEnabled() {
 		return true;
 	}
